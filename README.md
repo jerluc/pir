@@ -1,5 +1,6 @@
 Pir
 ===
+[![GoDoc](https://godoc.org/github.com/jerluc/pir?status.svg)](https://godoc.org/github.com/jerluc/pir) [![Build Status](https://travis-ci.org/jerluc/pir.svg)](https://travis-ci.org/jerluc/pir)
 
 Pir is a simple library for facilitating in device discovery on a LAN.
 
