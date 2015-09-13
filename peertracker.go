@@ -11,9 +11,9 @@ import (
 // TODO: Use some kind of exponential backoff and retention
 
 const (
-	HEALTHCHECK_INTERVAL = 2 * time.Second
-	HEALTHCHECK_TIMEOUT  = 2 * time.Second
-	REAPER_THRESHOLD     = 3
+	HealthCheckInterval = 2 * time.Second
+	HealthCheckTimeout  = 2 * time.Second
+	ReaperThreshold     = 3
 )
 
 type Tracker struct {
@@ -56,7 +56,7 @@ func (t *Tracker) Kill() {
 func (t *Tracker) track() {
 	defer t.reaper(t.peer)
 	for t.IsAlive() {
-		time.Sleep(HEALTHCHECK_INTERVAL)
+		time.Sleep(HealthCheckInterval)
 	}
 }
 
@@ -64,7 +64,7 @@ func (t *Tracker) remainingHealth() string {
 	t.healthMutex.RLock()
 	defer t.healthMutex.RUnlock()
 
-	return fmt.Sprintf("(%d/%d)", REAPER_THRESHOLD-t.unhealthyCount, REAPER_THRESHOLD)
+	return fmt.Sprintf("(%d/%d)", ReaperThreshold-t.unhealthyCount, ReaperThreshold)
 }
 
 func (t *Tracker) doHealthCheck() <-chan bool {
@@ -88,14 +88,14 @@ func (t *Tracker) IsAlive() bool {
 			t.MarkHealthy()
 			log.Infof("Peer is healthy [ %s ]", t)
 		}
-	case <-time.After(HEALTHCHECK_TIMEOUT):
+	case <-time.After(HealthCheckTimeout):
 		t.MarkUnhealthy()
 		log.Warningf("Healthcheck timed out for peer [ %s ]", t)
 	}
 
 	t.healthMutex.RLock()
 	defer t.healthMutex.RUnlock()
-	if t.unhealthyCount >= REAPER_THRESHOLD {
+	if t.unhealthyCount >= ReaperThreshold {
 		log.Warningf("Peer exceeds unhealthy threshold [ %s ]", t)
 		return false
 	}

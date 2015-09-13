@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	HEALTHCHECK_LISTEN_TIMEOUT = 2 * time.Second
-	DG_BUFFER_SIZE             = 8192
+	HealthCheckListenTimeout = 2 * time.Second
+	UDPBufferSize            = 8192
 )
 
 type Peer struct {
@@ -53,7 +53,7 @@ func (p *Peer) listen() error {
 	case healthCheckAddr := <-addr:
 		p.healthCheck = healthCheckAddr
 		return nil
-	case <-time.After(HEALTHCHECK_LISTEN_TIMEOUT):
+	case <-time.After(HealthCheckListenTimeout):
 		return &HealthCheckListenTimeoutErr{}
 	}
 }
@@ -121,7 +121,7 @@ func (p *Peer) Subscribe(group *Group) {
 
 	log.Infof("Subscribed to group [ %s ]", group)
 	for {
-		buffer := make([]byte, DG_BUFFER_SIZE)
+		buffer := make([]byte, UDPBufferSize)
 		fill, _, err := groupConn.ReadFromUDP(buffer)
 		if err != nil {
 			log.Fatal(err)

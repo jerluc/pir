@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	HEALTHCHECK_BUFFER_SIZE = 1
-	HEALTHCHECK_PAYLOAD     = byte(0)
+	HealthCheckBufferSize = 1
+	HealthCheckPayload    = byte(0)
 )
 
 func getHealthCheckAddr() (net.Addr, error) {
@@ -57,7 +57,7 @@ func StartHealthCheckServer(healthCheckAddr chan net.Addr) error {
 }
 
 func sendHealth(conn net.Conn) bool {
-	fill, err := conn.Write([]byte{HEALTHCHECK_PAYLOAD})
+	fill, err := conn.Write([]byte{HealthCheckPayload})
 	if fill != 1 || err != nil {
 		return false
 	}
@@ -66,9 +66,9 @@ func sendHealth(conn net.Conn) bool {
 }
 
 func readHealth(conn net.Conn) bool {
-	buffer := make([]byte, HEALTHCHECK_BUFFER_SIZE)
+	buffer := make([]byte, HealthCheckBufferSize)
 	fill, err := conn.Read(buffer)
-	if fill != 1 || err != nil || buffer[0] != HEALTHCHECK_PAYLOAD {
+	if fill != 1 || err != nil || buffer[0] != HealthCheckPayload {
 		return false
 	}
 

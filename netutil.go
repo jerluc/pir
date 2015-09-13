@@ -10,7 +10,7 @@ func (c CannotFindIPErr) Error() string {
 	return "Cannot find local IP"
 }
 
-// Adapted frmo http://stackoverflow.com/a/31551220
+// Adapted from http://stackoverflow.com/a/31551220
 func GetLocalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

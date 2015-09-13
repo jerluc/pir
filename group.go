@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	DEFAULT_BROADCAST_IP       = "224.0.0.1"
-	DEFAULT_BROADCAST_INTERVAL = 1 * time.Second
+	DefaultBroadcastIP       = "224.0.0.1"
+	DefaultBroadcastInterval = 1 * time.Second
 )
 
 type Group struct {
@@ -24,14 +24,14 @@ type Group struct {
 }
 
 func NewGroup(name string, port int) *Group {
-	fullAddr := fmt.Sprintf("%s:%d", DEFAULT_BROADCAST_IP, port)
+	fullAddr := fmt.Sprintf("%s:%d", DefaultBroadcastIP, port)
 	resolvedAddr, resolveErr := net.ResolveUDPAddr("udp", fullAddr)
 	if resolveErr != nil {
 		// TODO: How to best do this?
 		log.Fatal(resolveErr)
 	}
 
-	return &Group{name, resolvedAddr, DEFAULT_BROADCAST_INTERVAL,
+	return &Group{name, resolvedAddr, DefaultBroadcastInterval,
 		make(map[string]*Tracker, 0), sync.Mutex{}, make([]PeerListener, 0)}
 }
 
