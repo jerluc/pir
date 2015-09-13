@@ -3,6 +3,7 @@ package pir
 import (
   "fmt"
   "net"
+  "net/url"
   "strings"
   "time"
 
@@ -17,6 +18,7 @@ const (
 
 type Peer struct {
   ID              string
+  commsSpec       *url.URL
   healthCheck     net.Addr
 }
 
@@ -24,8 +26,13 @@ func generateId() string {
   return uuid.NewV4().String()
 }
 
-func NewPeer() *Peer {
-  return &Peer{generateId(), nil}
+func NewPeer(commsSpecStr string) (*Peer, error) {
+  commsSpec, err := url.Parse(commsSpecStr)
+  if err != nil {
+    return nil, err
+  }
+
+  return &Peer{generateId(), commsSpec, nil}, nil
 }
 
 func (p *Peer) Join(group *Group) {
@@ -51,7 +58,7 @@ func (p *Peer) listen() error {
 }
 
 func sendAdvertisement(group *Group, peer *Peer, conn net.Conn) {
-  payload := fmt.Sprintf("%s|%s|%s", group.Name, peer.ID, peer.healthCheck)
+  payload := fmt.Sprintf("%s|%s|%s|%s", group.Name, peer.ID, peer.healthCheck, peer.commsSpec)
   conn.Write([]byte(payload))
 }
 
@@ -82,7 +89,7 @@ func (i InvalidPeerBroadcastErr) Error() string {
 
 func (p *Peer) parsePeerBroadcast(group *Group, payload string) (*Peer, bool, error) {
   parts := strings.Split(payload, "|")
-  if len(parts) != 3 {
+  if len(parts) != 4 {
     return nil, false, &InvalidPeerBroadcastErr{payload}
   }
 
@@ -92,12 +99,17 @@ func (p *Peer) parsePeerBroadcast(group *Group, payload string) (*Peer, bool, er
 
   id := parts[1]
 
-  healthCheck, err := net.ResolveTCPAddr("tcp", parts[1])
+  healthCheck, err := net.ResolveTCPAddr("tcp", parts[2])
   if err != nil {
     return nil, true, err
   }
 
-  return &Peer{id, healthCheck}, true, nil
+  commsSpec, err := url.Parse(parts[3])
+  if err != nil {
+    return nil, true, err
+  }
+
+  return &Peer{id, commsSpec, healthCheck}, true, nil
 }
 
 func (p *Peer) subscribe(group *Group) {
@@ -106,8 +118,7 @@ func (p *Peer) subscribe(group *Group) {
     log.Fatal(err)
   }
 
-  groupConn.SetReadBuffer(DG_BUFFER_SIZE)
-
+  log.Infof("Subscribed to group [ %s ]", group)
   for {
     buffer := make([]byte, DG_BUFFER_SIZE)
     fill, _, err := groupConn.ReadFromUDP(buffer)
@@ -128,6 +139,10 @@ func (p *Peer) subscribe(group *Group) {
   }
 }
 
+func (p *Peer) CommsSpec() *url.URL {
+  return p.commsSpec
+}
+
 func (p *Peer) String() string {
-  return fmt.Sprintf("Peer{ id: %s }", p.ID)
+  return fmt.Sprintf("Peer{ id: %s, commsSpec: %s }", p.ID, p.commsSpec)
 }

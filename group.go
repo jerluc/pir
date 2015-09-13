@@ -20,6 +20,7 @@ type Group struct {
   BroadcastInterval time.Duration
   peerTrackers      map[string]*Tracker
   peerMutex         sync.Mutex
+  peerListeners     []PeerListener
 }
 
 func NewGroup(name string, port int) *Group {
@@ -31,7 +32,25 @@ func NewGroup(name string, port int) *Group {
   }
 
   return &Group{name, resolvedAddr, DEFAULT_BROADCAST_INTERVAL,
-    make(map[string]*Tracker, 0), sync.Mutex{}}
+    make(map[string]*Tracker, 0), sync.Mutex{}, make([]PeerListener, 0)}
+}
+
+func (g *Group) AddListener(listener PeerListener) {
+  g.peerMutex.Lock()
+  defer g.peerMutex.Unlock()
+
+  g.peerListeners = append(g.peerListeners, listener)
+}
+
+func (g *Group) notifyListeners(peer *Peer, eventType PeerEventType) {
+  retainedListeners := make([]PeerListener, 0)
+  for _, listener := range g.peerListeners {
+    keep := listener(PeerEvent{peer, eventType})
+    if keep {
+      retainedListeners = append(retainedListeners, listener)
+    }
+  }
+  g.peerListeners = retainedListeners
 }
 
 func (g *Group) AddPeer(peer *Peer) {
@@ -42,6 +61,7 @@ func (g *Group) AddPeer(peer *Peer) {
     tracker := NewTracker(peer, NewHealthCheck(peer), g.RemovePeer)
     log.Infof("Adding peer tracker [ %s ]", tracker)
     g.peerTrackers[peer.ID] = tracker
+    g.notifyListeners(peer, PeerAdded)
   }
 }
 
@@ -51,6 +71,7 @@ func (g *Group) RemovePeer(peer *Peer) {
 
   log.Infof("Removing peer tracker [ %s ]", g.peerTrackers[peer.ID])
   delete(g.peerTrackers, peer.ID)
+  g.notifyListeners(peer, PeerRemoved)
 }
 
 func (g *Group) String() string {
