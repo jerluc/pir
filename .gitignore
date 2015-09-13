@@ -1,0 +1,8 @@
+build
+bin
+pkg
+target
+
+*.a
+*.la
+*.so
