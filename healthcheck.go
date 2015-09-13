@@ -1,7 +1,9 @@
 package pir
 
 import (
+	"fmt"
 	"net"
+	"time"
 
 	log "github.com/golang/glog"
 )
@@ -11,7 +13,27 @@ const (
 	HealthCheckPayload    = byte(0)
 )
 
-func getHealthCheckAddr() (net.Addr, error) {
+type HealthCheck struct {
+	addr net.Addr
+}
+
+func NewHealthCheck() *HealthCheck {
+	return &HealthCheck{nil}
+}
+
+func (h *HealthCheck) Start() error {
+	addr := make(chan net.Addr, 1)
+	go listen(addr)
+	select {
+	case healthCheckAddr := <-addr:
+		h.addr = healthCheckAddr
+		return nil
+	case <-time.After(HealthCheckListenTimeout):
+		return &HealthCheckListenTimeoutErr{}
+	}
+}
+
+func generateHealthCheckAddr() (net.Addr, error) {
 	localIP, err := GetLocalIP()
 	if err != nil {
 		return nil, err
@@ -25,8 +47,8 @@ func getHealthCheckAddr() (net.Addr, error) {
 	return addr, nil
 }
 
-func StartHealthCheckServer(healthCheckAddr chan net.Addr) error {
-	addr, err := getHealthCheckAddr()
+func listen(healthCheckAddr chan net.Addr) error {
+	addr, err := generateHealthCheckAddr()
 	if err != nil {
 		return err
 	}
@@ -75,9 +97,18 @@ func readHealth(conn net.Conn) bool {
 	return true
 }
 
-func NewHealthCheck(peer *Peer) func() bool {
+func (h *HealthCheck) URISpec() string {
+	return fmt.Sprintf("tcp://%s", h.addr)
+}
+
+func NewHealthChecker(peer *Peer) func() bool {
 	return func() bool {
-		conn, err := net.DialTCP("tcp", nil, peer.healthCheck.(*net.TCPAddr))
+		healthCheckAddr, err := ResolveURISpec(peer.healthCheckSpec.String())
+		if err != nil {
+			return false
+		}
+
+		conn, err := net.DialTCP("tcp", nil, healthCheckAddr.(*net.TCPAddr))
 		if err != nil {
 			return false
 		}

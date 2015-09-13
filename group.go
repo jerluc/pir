@@ -58,7 +58,7 @@ func (g *Group) AddPeer(peer *Peer) {
 	defer g.peerMutex.Unlock()
 
 	if _, exists := g.peerTrackers[peer.ID]; !exists {
-		tracker := NewTracker(peer, NewHealthCheck(peer), g.RemovePeer)
+		tracker := NewTracker(peer, NewHealthChecker(peer), g.RemovePeer)
 		log.Infof("Adding peer tracker [ %s ]", tracker)
 		g.peerTrackers[peer.ID] = tracker
 		g.notifyListeners(peer, PeerAdded)

@@ -17,22 +17,27 @@ const (
 )
 
 type Peer struct {
-	ID          string
-	commsSpec   *url.URL
-	healthCheck net.Addr
+	ID              string
+	commsSpec       *url.URL
+	healthCheckSpec *url.URL
 }
 
 func generateId() string {
 	return uuid.NewV4().String()
 }
 
-func NewPeer(commsSpecStr string) (*Peer, error) {
+func NewPeer(commsSpecStr string, healthCheckSpecStr string) (*Peer, error) {
 	commsSpec, err := url.Parse(commsSpecStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Peer{generateId(), commsSpec, nil}, nil
+	healthCheckSpec, err := url.Parse(healthCheckSpecStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Peer{generateId(), commsSpec, healthCheckSpec}, nil
 }
 
 func (p *Peer) Join(group *Group) {
@@ -46,28 +51,12 @@ func (h HealthCheckListenTimeoutErr) Error() string {
 	return "Failed to start healthcheck server"
 }
 
-func (p *Peer) listen() error {
-	addr := make(chan net.Addr, 1)
-	go StartHealthCheckServer(addr)
-	select {
-	case healthCheckAddr := <-addr:
-		p.healthCheck = healthCheckAddr
-		return nil
-	case <-time.After(HealthCheckListenTimeout):
-		return &HealthCheckListenTimeoutErr{}
-	}
-}
-
 func sendAdvertisement(group *Group, peer *Peer, conn net.Conn) {
-	payload := fmt.Sprintf("%s|%s|%s|%s", group.Name, peer.ID, peer.healthCheck, peer.commsSpec)
+	payload := fmt.Sprintf("%s|%s|%s|%s", group.Name, peer.ID, peer.healthCheckSpec, peer.commsSpec)
 	conn.Write([]byte(payload))
 }
 
 func (p *Peer) Advertise(group *Group) {
-	if err := p.listen(); err != nil {
-		log.Fatal(err)
-	}
-
 	groupConn, err := net.DialUDP("udp", nil, group.BroadcastAddress)
 	if err != nil {
 		log.Fatal(err)
@@ -100,7 +89,7 @@ func (p *Peer) parsePeerBroadcast(group *Group, payload string) (*Peer, bool, er
 
 	id := parts[1]
 
-	healthCheck, err := net.ResolveTCPAddr("tcp", parts[2])
+	healthCheckSpec, err := url.Parse(parts[2])
 	if err != nil {
 		return nil, true, err
 	}
@@ -110,7 +99,7 @@ func (p *Peer) parsePeerBroadcast(group *Group, payload string) (*Peer, bool, er
 		return nil, true, err
 	}
 
-	return &Peer{id, commsSpec, healthCheck}, true, nil
+	return &Peer{id, commsSpec, healthCheckSpec}, true, nil
 }
 
 func (p *Peer) Subscribe(group *Group) {
@@ -145,5 +134,5 @@ func (p *Peer) CommsSpec() *url.URL {
 }
 
 func (p *Peer) String() string {
-	return fmt.Sprintf("Peer{ id: %s, commsSpec: %s }", p.ID, p.commsSpec)
+	return fmt.Sprintf("Peer{ id: %s, commsSpec: %s, healthCheckSpec: %s }", p.ID, p.commsSpec, p.healthCheckSpec)
 }
