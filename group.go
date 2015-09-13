@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -27,7 +27,6 @@ func NewGroup(name string, port int) *Group {
 	fullAddr := fmt.Sprintf("%s:%d", DefaultBroadcastIP, port)
 	resolvedAddr, resolveErr := net.ResolveUDPAddr("udp", fullAddr)
 	if resolveErr != nil {
-		// TODO: How to best do this?
 		log.Fatal(resolveErr)
 	}
 
@@ -69,7 +68,7 @@ func (g *Group) RemovePeer(peer *Peer) {
 	g.peerMutex.Lock()
 	defer g.peerMutex.Unlock()
 
-	log.Infof("Removing peer tracker [ %s ]", g.peerTrackers[peer.ID])
+	log.Warnf("Removing peer tracker [ %s ]", g.peerTrackers[peer.ID])
 	delete(g.peerTrackers, peer.ID)
 	g.notifyListeners(peer, PeerRemoved)
 }

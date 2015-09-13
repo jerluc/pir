@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/Sirupsen/logrus"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -120,7 +120,7 @@ func (p *Peer) Subscribe(group *Group) {
 
 		peer, belongsToGroup, parseErr := p.parsePeerBroadcast(group, payload)
 		if parseErr != nil {
-			log.Warning("Could not handle broadcast:", parseErr)
+			log.Warn("Could not handle broadcast:", parseErr)
 		}
 
 		if belongsToGroup && peer.ID != p.ID {

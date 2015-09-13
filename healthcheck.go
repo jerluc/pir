@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (

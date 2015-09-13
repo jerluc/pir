@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/Sirupsen/logrus"
 )
 
 // TODO: Use some kind of exponential backoff and retention
@@ -78,25 +78,25 @@ func (t *Tracker) doHealthCheck() <-chan bool {
 func (t *Tracker) IsAlive() bool {
 	select {
 	case <-t.deathChan:
-		log.Warningf("Peer is dead [ %s ]", t)
+		log.Warnf("Peer is dead [ %s ]", t)
 		return false
 	case healthy := <-t.doHealthCheck():
 		if !healthy {
 			t.MarkUnhealthy()
-			log.Warningf("Peer is unhealthy [ %s ]", t)
+			log.Warnf("Peer is unhealthy [ %s ]", t)
 		} else {
 			t.MarkHealthy()
 			log.Infof("Peer is healthy [ %s ]", t)
 		}
 	case <-time.After(HealthCheckTimeout):
 		t.MarkUnhealthy()
-		log.Warningf("Healthcheck timed out for peer [ %s ]", t)
+		log.Warnf("Healthcheck timed out for peer [ %s ]", t)
 	}
 
 	t.healthMutex.RLock()
 	defer t.healthMutex.RUnlock()
 	if t.unhealthyCount >= ReaperThreshold {
-		log.Warningf("Peer exceeds unhealthy threshold [ %s ]", t)
+		log.Warnf("Peer exceeds unhealthy threshold [ %s ]", t)
 		return false
 	}
 

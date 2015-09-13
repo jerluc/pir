@@ -2,8 +2,9 @@ package main
 
 import (
   "flag"
-  "fmt"
+
   "github.com/jerluc/pir"
+  log "github.com/Sirupsen/logrus"
 )
 
 // The group that the peer should join
@@ -28,7 +29,7 @@ func main() {
   // Join the group on port 9999
   group := pir.NewGroup(group, 9999)
   group.AddListener(func(event pir.PeerEvent) bool {
-    fmt.Println("Membership change event has occurred:", event)
+    log.Info("Membership change event has occurred:", event)
     return true
   })
   peer.Join(group)
