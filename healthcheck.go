@@ -8,19 +8,40 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// TODO: Make this mechanism suck less; maybe use TCP keep-alive and monitor
+// connection status rather than actual making a request/response protocol?
+
 const (
+	// The timeout duration after attempting to create a healthcheck server after
+	// which to fail
+	HealthCheckListenTimeout = 2 * time.Second
+	// The TCP buffer size for healthcheck reads/writes
 	HealthCheckBufferSize = 1
-	HealthCheckPayload    = byte(0)
+	// The payload to send and receive from the healthcheck
+	HealthCheckPayload = byte(0)
 )
 
+// A HealthCheck acts as a server to handle the health-checking protocol
 type HealthCheck struct {
+	// The server address
 	addr net.Addr
 }
 
+// A HealthCheckListenTimeoutErr occurs when the healthcheck server fails to
+// start after the HealthCheckListenTimeout elapses
+type HealthCheckListenTimeoutErr struct{}
+
+func (h HealthCheckListenTimeoutErr) Error() string {
+	return "Failed to start healthcheck server"
+}
+
+// Creates a new healthcheck server
 func NewHealthCheck() *HealthCheck {
 	return &HealthCheck{nil}
 }
 
+// Start asynchronously starts listening on the next available port, handling
+// the builtin healthcheck protocol.
 func (h *HealthCheck) Start() error {
 	addr := make(chan net.Addr, 1)
 	go listen(addr)
@@ -97,13 +118,17 @@ func readHealth(conn net.Conn) bool {
 	return true
 }
 
+// URISpec is a convenience method to construct the URI specification for this
+// healthcheck server
 func (h *HealthCheck) URISpec() string {
 	return fmt.Sprintf("tcp://%s", h.addr)
 }
 
+// NewHealthChecker acts as a healthchecking function for a Tracker, by using
+// the builtin healthchecking protocol to query for peer health.
 func NewHealthChecker(peer *Peer) func() bool {
 	return func() bool {
-		healthCheckAddr, err := ResolveURISpec(peer.healthCheckSpec.String())
+		healthCheckAddr, err := ResolveURISpec(peer.HealthCheckSpec.String())
 		if err != nil {
 			return false
 		}

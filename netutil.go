@@ -12,7 +12,8 @@ func (c CannotFindIPErr) Error() string {
 	return "Cannot find local IP"
 }
 
-// Adapted from http://stackoverflow.com/a/31551220
+// GetLocalIP gets this host's local IP address for the first non-loopback IPv4
+// network interface. This was adapted from http://stackoverflow.com/a/31551220
 func GetLocalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -30,6 +31,8 @@ func GetLocalIP() (string, error) {
 	return "", &CannotFindIPErr{}
 }
 
+// An UnsupportedURISpecErr occurs when the URI specification uses an unknown
+// scheme (concretely, this is any scheme outside of "tcp" or "udp").
 type UnsupportedURISpecErr struct {
 	uriSpec *url.URL
 }
@@ -38,6 +41,8 @@ func (u UnsupportedURISpecErr) Error() string {
 	return fmt.Sprintf("Unsupported URI spec [%s]", u.uriSpec)
 }
 
+// ResolveURISpec resolves the string representation of a URI specification to
+// it's equivalent net.Addr
 func ResolveURISpec(uriSpecStr string) (net.Addr, error) {
 	uriSpec, err := url.Parse(uriSpecStr)
 	if err != nil {

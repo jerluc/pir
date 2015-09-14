@@ -38,7 +38,7 @@ peer.Join(group)
 
 ##### Receiving membership updates
 ```go
-group.AddListener(func(event pir.PeerEvent) bool {
+group.AddListener(func(event pir.MembershipEvent) bool {
   fmt.Println("Membership change event has occurred:", event)
   return true
 })
